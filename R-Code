@@ -1,0 +1,44 @@
+install.packages("readxl")     # For reading Excel files
+install.packages("dplyr")      # For data manipulation
+install.packages("ggplot2")    # For plotting
+install.packages("pracma")     # For trapezoidal integration (trapz)
+
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(pracma)  # for trapz()
+
+
+
+# Read the Excel file
+df <- read_excel("E:/8th Semester/Research/River/data/Cross_SectionRMBR26.xlsx")
+
+# Clean up and prepare data
+df <- df %>%
+  filter(!is.na(`RL(m)`), !is.na(`DISTANCE(m)`)) %>%
+  mutate(Year = format(as.Date(DATE), "%Y"))
+
+# Plot cross-section profile by year
+ggplot(df, aes(x = `DISTANCE(m)`, y = `RL(m)`, color = Year)) +
+  geom_line(size = 1.2) +
+  labs(title = "Cross-Sectional Profile - RMBR26",
+       x = "Distance (m)", y = "Reduced Level (m)") +
+  theme_minimal()
+
+# Calculate cross-sectional area per year using trapezoidal rule
+area_df <- df %>%
+  group_by(Year) %>%
+  summarise(area_m2 = trapz(`DISTANCE(m)`, `RL(m)`))
+
+# Compute average and minimum RL per year
+summary_df <- df %>%
+  group_by(Year) %>%
+  summarise(mean_RL = mean(`RL(m)`),
+            min_RL = min(`RL(m)`),
+            area_m2 = trapz(`DISTANCE(m)`, `RL(m)`))
+
+
+print(summary_df)
+
+# Save results to CSV
+write.csv(summary_df, "RMBR26_CrossSection_Summary.csv", row.names = FALSE)
